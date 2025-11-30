@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>To-Do List App</title>
+<style>
+  :root { --blue:#eb9f25; --bg:#4373d3; --white:#fff; --radius:120px; }
+  body { margin:0; font-family:system-ui; display:flex; justify-content:center; padding:40px; background:var(--bg); }
+  .container { background:var(--white); width:min(800px,95%); padding:20px; border-radius:var(--radius); box-shadow:0 8px 20px rgba(0,0,0,.12); }
+  h2 { margin:0 0 16px; text-align:center; }
+  .input-row { display:flex; gap:10px; }
+  input { flex:1; padding:12px; border:1px solid #dddddd; border-radius:var(--radius); font-size:16px; }
+  button { padding:12px 16px; background:var(--blue); color:rgb(255, 255, 255); border:0; border-radius:var(--radius); font-weight:600; cursor:pointer; }
+  ul { margin:20px 0 0; padding:0; list-style:none; }
+  li { display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:12px; border-radius:var(--radius); margin-bottom:10px; font-size:16px; }
+  li.completed span { text-decoration:line-through; opacity:.6; }
+  .actions { display:flex; gap:12px; }
+  .btn-complete, .btn-delete { background:none; border:none; cursor:pointer; font-size:20px; }
+  .btn-complete { color:green; }
+  .btn-delete { color:red; }
+  @media(max-width:420px){ input{font-size:14px;} li{font-size:14px;} }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>To-Do List ✔️</h2>
+  <div class="input-row">
+    <input id="taskInput" placeholder="Enter task..." />
+    <button id="addBtn">Add</button>
+  </div>
+  <ul id="taskList"></ul>
+</div>
+
+<script>
+  const input = document.getElementById('taskInput');
+  const addBtn = document.getElementById('addBtn');
+  const taskList = document.getElementById('taskList');
+
+  let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+  function save(){ localStorage.setItem('tasks', JSON.stringify(tasks)); }
+
+  function render(){
+    taskList.innerHTML = '';
+    tasks.forEach((task,i) =>{
+      const li = document.createElement('li');
+      const span = document.createElement('span');
+      span.textContent = task.text;
+      if(task.completed) li.classList.add('completed');
+      
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      const completeBtn = document.createElement('button');
+      completeBtn.className = 'btn-complete';
+      completeBtn.textContent = '✔️';
+      completeBtn.onclick = () => toggle(i);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn-delete';
+      deleteBtn.textContent = '🗑️';
+      deleteBtn.onclick = () => remove(i);
+
+      actions.append(completeBtn, deleteBtn);
+      li.append(span, actions);
+      taskList.append(li);
+    });
+  }
+
+  function add(){
+    const text = input.value.trim();
+    if(!text) return;
+    tasks.push({text, completed:false});
+    input.value = '';
+    save(); render();
+  }
+
+  function toggle(i){ tasks[i].completed = !tasks[i].completed; save(); render(); }
+  function remove(i){ tasks.splice(i,1); save(); render(); }
+
+  addBtn.addEventListener('click', add);
+  input.addEventListener('keydown', e =>{ if(e.key==='Enter') add(); });
+
+  render();
+</script>
+</body>
+</html>

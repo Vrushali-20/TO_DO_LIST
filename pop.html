@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Modal / Popup Example</title>
+  <style>
+    :root{
+      --overlay: rgba(0,0,0,0.6);
+      --modal-bg: #fff;
+      --accent: #2563eb;
+      --radius: 12px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    body{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f3f4f6}
+
+    /* Button */
+    .open-btn{
+      background:var(--accent);color:white;padding:12px 18px;border:0;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,0.12)
+    }
+
+    /* Overlay */
+    .overlay{
+      position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:50
+    }
+    .overlay.show{display:flex}
+
+    /* Backdrop with fade */\    
+    .backdrop{position:absolute;inset:0;background:var(--overlay);opacity:0;transition:opacity .25s ease}
+    .overlay.show .backdrop{opacity:1}
+
+    /* Modal panel */
+    .modal{
+      position:relative;background:var(--modal-bg);border-radius:var(--radius);width:min(720px,94vw);max-height:86vh;overflow:auto;padding:22px;box-shadow:0 18px 40px rgba(2,6,23,0.14);transform:translateY(18px) scale(.98);opacity:0;transition:transform .26s cubic-bezier(.2,.9,.3,1),opacity .22s ease
+    }
+    .overlay.show .modal{transform:translateY(0) scale(1);opacity:1}
+
+    /* Close button */
+    .close-btn{position:absolute;right:12px;top:12px;border:0;background:transparent;font-size:18px;cursor:pointer;padding:8px;border-radius:8px}
+    .close-btn:focus{outline:2px solid rgba(37,99,235,.18)}
+
+    header h2{margin:0 0 6px 0;font-size:20px}
+    header p{margin:0;color:#374151;font-size:14px}
+
+    form{margin-top:14px;display:grid;gap:10px}
+    label{font-size:13px;color:#374151}
+    input[type="text"], input[type="email"], textarea{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ef;font-size:14px;resize:vertical
+    }
+    .row{display:flex;gap:10px}
+    .row > *{flex:1}
+
+    .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+    .btn{padding:10px 14px;border-radius:8px;border:0;cursor:pointer}
+    .btn.secondary{background:#eef2ff;color:var(--accent);font-weight:600}
+    .btn.primary{background:var(--accent);color:#fff;font-weight:600}
+
+    /* small helper text */
+    .note{font-size:13px;color:#6b7280}
+
+    /* Accessibility focus ring */
+    :focus{outline:2px solid rgba(37,99,235,.18);outline-offset:2px}
+
+    @media (max-width:420px){
+      .modal{padding:16px}
+      .close-btn{right:8px;top:8px}
+    }
+  </style>
+</head>
+<body>
+  <button class="open-btn" id="openModalBtn">Open Modal</button>
+
+  <!-- Overlay & Modal -->
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="backdrop" id="backdrop" data-close></div>
+
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+      <button class="close-btn" id="closeBtn" aria-label="Close modal">✕</button>
+
+      <header>
+        <h2 id="modalTitle">Send Feedback</h2>
+        <p id="modalDesc">We'd love to hear from you — quick message, bug report or idea.</p>
+      </header>
+
+      <form id="modalForm">
+        <div class="row">
+          <div>
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" placeholder="Your name" required />
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="you@example.com" required />
+          </div>
+        </div>
+
+        <div>
+          <label for="message">Message</label>
+          <textarea id="message" name="message" rows="5" placeholder="Type your message..." required></textarea>
+        </div>
+
+        <div class="note">Tip: Press <kbd>Esc</kbd> to close the modal. Click outside or use the close button.</div>
+
+        <div class="actions">
+          <button type="button" class="btn secondary" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn primary">Send Message</button>
+        </div>
+      </form>
+
+      <footer style="margin-top:14px;font-size:13px;color:#6b7280">
+        Example link: <a href="https://example.com" target="_blank" rel="noopener">Visit example.com</a>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const openBtn = document.getElementById('openModalBtn');
+      const overlay = document.getElementById('overlay');
+      const closeBtn = document.getElementById('closeBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
+      const backdrop = document.getElementById('backdrop');
+      const firstFocusable = document.getElementById('name');
+      const lastFocusable = document.querySelector('.actions .primary');
+      const previouslyFocused = {el: null};
+
+      function showModal(){
+        previouslyFocused.el = document.activeElement;
+        overlay.classList.add('show');
+        overlay.setAttribute('aria-hidden','false');
+        // wait for animation then focus first field
+        setTimeout(()=> firstFocusable.focus(), 170);
+        document.addEventListener('keydown', onKeydown);
+        // prevent body scrolling while modal open
+        document.documentElement.style.overflow = 'hidden';
+      }
+
+      function hideModal(){
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden','true');
+        document.removeEventListener('keydown', onKeydown);
+        document.documentElement.style.overflow = '';
+        // restore focus
+        if(previouslyFocused.el) previouslyFocused.el.focus();
+      }
+
+      function onKeydown(e){
+        if(e.key === 'Escape'){
+          hideModal();
+        }
+        // basic focus trap: Tab wraps from last to first and vice versa
+        if(e.key === 'Tab'){
+          const focusable = Array.from(overlay.querySelectorAll('a[href], button:not([disabled]), input, textarea, select')).filter(x=>x.offsetParent!==null);
+          if(focusable.length === 0) return;
+          const idx = focusable.indexOf(document.activeElement);
+          if(e.shiftKey && idx === 0){ // shift+tab on first
+            e.preventDefault();
+            focusable[focusable.length-1].focus();
+          } else if(!e.shiftKey && idx === focusable.length-1){
+            e.preventDefault();
+            focusable[0].focus();
+          }
+        }
+      }
+
+      // open listeners
+      openBtn.addEventListener('click', showModal);
+
+      // close listeners
+      closeBtn.addEventListener('click', hideModal);
+      cancelBtn.addEventListener('click', hideModal);
+      backdrop.addEventListener('click', hideModal);
+
+      // form submit
+      const form = document.getElementById('modalForm');
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        const data = new FormData(form);
+        // simulate sending
+        console.log('Form submitted:', Object.fromEntries(data.entries()));
+        alert('Thanks! Message sent.');
+        form.reset();
+        hideModal();
+      });
+
+      // Accessibility: close if overlay loses visibility via click on overlay area (already covered by backdrop)
+
+    })();
+  </script>
+</body>
+</html>
